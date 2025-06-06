@@ -1,0 +1,10 @@
+name = "progetto-lean"
+version = "0.1.0"
+defaultTargets = ["progetto-lean"]
+
+[[lean_lib]]
+name = "ProgettoLean"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
