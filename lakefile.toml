@@ -1,6 +1,6 @@
 name = "progetto-lean"
 version = "0.1.0"
-defaultTargets = ["progetto-lean"]
+defaultTargets = ["ProgettoLean"]
 
 [[lean_lib]]
 name = "ProgettoLean"
