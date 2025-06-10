@@ -274,31 +274,6 @@ lemma plus_one_coprime_iff_same_primes_or_zero
         exact hpdab
       exact Nat.Prime.not_dvd_one p_prime p_div_one
 
-lemma same_primes_cp
-{m: ℕ} (mnz: m ≠ 0)
-{a: ZMod m}(hpf: (primeFactors m) ⊆ (primeFactors a.val)) :
-∀ b : ℕ, Coprime m (1 + a.val*b) := by
-  haveI : NeZero m := ⟨mnz⟩
-  intro b
-  rw [Nat.coprime_iff_gcd_eq_one]
-  apply Nat.coprime_of_dvd
-  intro p p_prime hpdm hpdab
-  have ppm : p ∈ primeFactors m := by
-    rw[mem_primeFactors]
-    split_ands
-    exact p_prime
-    exact hpdm
-    exact mnz
-
-  have ppa : p ∈ primeFactors a.val := hpf ppm
-  have p_div_a : p ∣ a.val := dvd_of_mem_primeFactors ppa
-
-  have p_div_ab := Nat.dvd_mul_right_of_dvd p_div_a b
-  have p_div_one : p ∣ 1 := by
-    rw[← Nat.dvd_add_iff_left p_div_ab] at hpdab
-    exact hpdab
-  exact Nat.Prime.not_dvd_one p_prime p_div_one
-
 
 theorem unit_iff_val_coprime
 {m: ℕ}(mnz: m ≠ 0)
