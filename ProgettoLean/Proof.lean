@@ -11,16 +11,36 @@ import Init.Data.Nat.Dvd
 import Init.Data.Int.Pow
 import Mathlib.Tactic.Zify
 import Mathlib.Data.Finsupp.Basic
+import ProgettoLean.Ring_lemmas
 
 open Nat
 
-def IsNilpotent{n: ℕ}(x: ZMod n) : Prop :=
+variable {N: ℕ}
+variable [NeZero N]
+
+def MyNilpotent(x: ZMod N) : Prop :=
   ∃ k : ℕ, k > 0 ∧ x ^ k = 0
+
+-- this is indeed equivalent to the standard IsNilpotent
+lemma myNil_eq_Nil
+{x: ZMod N}:
+MyNilpotent x ↔ IsNilpotent x := by
+constructor
+·
+  intro h
+  obtain ⟨ k, k_pos, xk ⟩ := h
+  use k
+·
+  intro h
+  obtain ⟨ k, xk ⟩ := h
+  use k+1
+  rw[pow_succ, xk]
+  simp
 
 -- we love mathlib --
 lemma my_val_pow
-{m k: ℕ} (mnz: m ≠ 0)
-{x: ZMod m} :
+{k: ℕ}
+{x: ZMod N} :
 x ^ k = ↑(x.val ^ k) := by
   induction k with
   | zero =>
@@ -29,16 +49,12 @@ x ^ k = ↑(x.val ^ k) := by
   | succ d hd =>
     rw[pow_succ, pow_succ]
     rw[hd]
-    haveI: NeZero m := by
-      rw[← neZero_iff] at mnz
-      exact mnz
     simp
 
 -- a is nilpotent → m | a^k for some k
 lemma nil_iff_div_pow
-{m: ℕ} (mnz: m≠0)
-{x: ZMod m} :
-IsNilpotent x ↔ ∃ k : ℕ, k > 0 ∧ m ∣ (x.val ^ k) := by
+{x: ZMod N} :
+MyNilpotent x ↔ ∃ k : ℕ, k > 0 ∧ N ∣ (x.val ^ k) := by
   constructor
   ·
     intro mp
@@ -47,7 +63,7 @@ IsNilpotent x ↔ ∃ k : ℕ, k > 0 ∧ m ∣ (x.val ^ k) := by
     use k
     split_ands
     exact k_pos
-    rw [my_val_pow mnz] at hk_zero
+    rw [my_val_pow] at hk_zero
     rw [ZMod.natCast_zmod_eq_zero_iff_dvd] at hk_zero
     exact hk_zero
   ·
@@ -57,15 +73,14 @@ IsNilpotent x ↔ ∃ k : ℕ, k > 0 ∧ m ∣ (x.val ^ k) := by
     split_ands
     exact k_pos
     rw [← ZMod.natCast_zmod_eq_zero_iff_dvd] at hk_zero
-    rw [← my_val_pow mnz] at hk_zero
+    rw [← my_val_pow] at hk_zero
     exact hk_zero
 
 
 -- a is nilpotent ↔ a has all of m's prime factors or a = 0
 lemma nil_iff_same_primes_or_zero
-{m: ℕ} (mnz: m ≠ 0)
-{a: ZMod m} :
-IsNilpotent a ↔ a = 0 ∨ (primeFactors m) ⊆ (primeFactors a.val) := by
+{a: ZMod N} :
+MyNilpotent a ↔ a = 0 ∨ (primeFactors N) ⊆ (primeFactors a.val) := by
   constructor
   ·
     intro hnil
@@ -76,7 +91,7 @@ IsNilpotent a ↔ a = 0 ∨ (primeFactors m) ⊆ (primeFactors a.val) := by
     .
       right
       have hanz : a ≠ 0 := h
-      obtain ⟨ k, k_pos, div_pow ⟩ := (nil_iff_div_pow mnz).mp hnil
+      obtain ⟨ k, k_pos, div_pow ⟩ := (nil_iff_div_pow).mp hnil
       -- a^k ≠ 0 (as int)
       rewrite[← ZMod.val_ne_zero] at hanz
       have a_pos := Nat.pos_of_ne_zero hanz
@@ -114,32 +129,33 @@ IsNilpotent a ↔ a = 0 ∨ (primeFactors m) ⊆ (primeFactors a.val) := by
           (ZMod.val_ne_zero a).mpr az
         have av_pos : 0 < a.val :=
           Nat.pos_iff_ne_zero.mpr av_nz
-        have am_nz : a.val ^ m ≠ 0 :=
+        have am_nz : a.val ^ N ≠ 0 :=
           Nat.pos_iff_ne_zero.mp (Nat.pow_pos av_pos)
 
-        rw[nil_iff_div_pow mnz]
-        let m_fact := m.factorization
-        use m
+        rw[nil_iff_div_pow]
+        let m_fact := N.factorization
+        use N
+        have nnz := NeZero.ne N
         split_ands
-        exact Nat.pos_iff_ne_zero.mpr mnz
-        rw[← factorization_prime_le_iff_dvd mnz am_nz]
+        exact Nat.pos_iff_ne_zero.mpr nnz
+        rw[← factorization_prime_le_iff_dvd nnz am_nz]
         intro p
         intro p_prime
-        by_cases pdiv: p ∈ m.primeFactors
+        by_cases pdiv: p ∈ N.primeFactors
         ·
           -- p is a factor of m
           -- we prove that m.factorization p ≤ m
-          have f_lt_m := Nat.factorization_lt p mnz
+          have f_lt_m := Nat.factorization_lt p nnz
           -- and that a.factorization p ≥ 1
           have p_in_af : p ∈ a.val.primeFactors := h pdiv
           have p_f_nz : 0 < a.val.factorization p := by
             have p_div := ((Nat.mem_primeFactors_of_ne_zero av_nz).mp p_in_af).2
             exact Nat.Prime.factorization_pos_of_dvd p_prime av_nz p_div
 
-          have p_pow_ge_m : (a.val ^ m).factorization p ≥ m := by
+          have p_pow_ge_m : (a.val ^ N).factorization p ≥ N := by
             rw[Nat.factorization_pow (n:=a.val)]
             simp
-            exact Nat.le_mul_of_pos_right m p_f_nz
+            exact Nat.le_mul_of_pos_right N p_f_nz
 
           have f_le_m := Nat.le_of_lt f_lt_m
           exact le_trans f_le_m p_pow_ge_m
@@ -147,16 +163,16 @@ IsNilpotent a ↔ a = 0 ∨ (primeFactors m) ⊆ (primeFactors a.val) := by
         ·
           -- p isn't a factor of m
           -- m.factorization p = 0 ≤ anything
-          have pnd : ¬ p ∣ m := by
+          have pnd : ¬ p ∣ N := by
             by_contra!
-            rw[mem_primeFactors_of_ne_zero mnz] at pdiv
-            have aaa : Nat.Prime p ∧ p ∣ m := by
+            rw[mem_primeFactors_of_ne_zero nnz] at pdiv
+            have aaa : Nat.Prime p ∧ p ∣ N := by
               split_ands
               exact p_prime
               exact this
             exact pdiv aaa
 
-          have fact_zero : m.factorization p = 0 := by
+          have fact_zero : N.factorization p = 0 := by
             by_contra! mp
             exact pnd (Nat.dvd_of_factorization_pos mp)
 
@@ -164,9 +180,9 @@ IsNilpotent a ↔ a = 0 ∨ (primeFactors m) ⊆ (primeFactors a.val) := by
           simp
 
 lemma plus_one_coprime_iff_same_primes_or_zero
-{m: ℕ} (mnz: m ≠ 0)
-{a: ZMod m} :
-(∀ b : ZMod m, Coprime m (1 + a.val * b.val)) ↔ a = 0 ∨ (primeFactors m) ⊆ (primeFactors a.val) := by
+{a: ZMod N} :
+(∀ b : ZMod N, Coprime N (1 + a.val * b.val)) ↔ a = 0 ∨ (primeFactors N) ⊆ (primeFactors a.val) := by
+  have nnz := NeZero.ne N
   constructor
   ·
     intro h_cop
@@ -178,7 +194,7 @@ lemma plus_one_coprime_iff_same_primes_or_zero
       right
       intro p hp
       rw[Nat.mem_primeFactors]
-      obtain ⟨ p_prime, p_div, mnz ⟩ := Nat.mem_primeFactors.mp hp
+      obtain ⟨ p_prime, p_div, nnz ⟩ := Nat.mem_primeFactors.mp hp
       split_ands
       tauto
       case neg.h.intro.intro.refine_2.refine_2 =>
@@ -221,7 +237,7 @@ lemma plus_one_coprime_iff_same_primes_or_zero
         rw [← Nat.add_sub_assoc p_ge_one]
         simp
 
-      let b: ZMod m := (bb.cast * (p-1).cast)
+      let b: ZMod N := (bb.cast * (p-1).cast)
       let x := 1 + a.val * b.val
       have hx_modp : (1 + a.val * b.val) % p = 0 := by
         subst b
@@ -230,7 +246,7 @@ lemma plus_one_coprime_iff_same_primes_or_zero
         simp
         rw[ZMod.val_mul]
         simp
-        rw [← Nat.mod_mod_of_dvd (1 + a.val * (bb * (p - 1) % m)) p_div]
+        rw [← Nat.mod_mod_of_dvd (1 + a.val * (bb * (p - 1) % N)) p_div]
         rw[Nat.add_mod, Nat.mul_mod]
         simp
 
@@ -241,7 +257,7 @@ lemma plus_one_coprime_iff_same_primes_or_zero
       have p_dvd_ab := dvd_iff_mod_eq_zero.mpr hx_modp
 
       -- we finally got our absurdity: m and 1 + a.val * b.val are not coprime!
-      have nope : ¬m.Coprime (1 + a.val * b.val) := by
+      have nope : ¬N.Coprime (1 + a.val * b.val) := by
         rw[Nat.Prime.not_coprime_iff_dvd]
         use p
 
@@ -258,12 +274,12 @@ lemma plus_one_coprime_iff_same_primes_or_zero
       rw [Nat.coprime_iff_gcd_eq_one]
       apply Nat.coprime_of_dvd
       intro p p_prime hpdm hpdab
-      have ppm : p ∈ primeFactors m := by
+      have ppm : p ∈ primeFactors N := by
         rw[mem_primeFactors]
         split_ands
         exact p_prime
         exact hpdm
-        exact mnz
+        exact nnz
 
       have ppa : p ∈ primeFactors a.val := h ppm
       have p_div_a : p ∣ a.val := dvd_of_mem_primeFactors ppa
@@ -276,10 +292,8 @@ lemma plus_one_coprime_iff_same_primes_or_zero
 
 
 theorem unit_iff_val_coprime
-{m: ℕ}(mnz: m ≠ 0)
-{a: ZMod m}:
-IsUnit a ↔ a.val.Coprime m := by
-haveI : NeZero m := ⟨ mnz ⟩
+{a: ZMod N}:
+IsUnit a ↔ a.val.Coprime N := by
 rw[← ZMod.isUnit_iff_coprime]
 rw[ZMod.natCast_val]
 simp
@@ -293,26 +307,23 @@ n.Coprime x ↔ n.Coprime y := by
   nth_rewrite 2 [Nat.gcd_rec]
   rw[heq]
 
-
 theorem ex158
-{m: ℕ}(mnz: m ≠ 0)
-{a: ZMod m}:
-IsNilpotent a ↔ ∀ b : ZMod m, IsUnit (1 + a*b) := by
-  rw[nil_iff_same_primes_or_zero mnz]
-  rw[← plus_one_coprime_iff_same_primes_or_zero mnz]
-  haveI : NeZero m := ⟨ mnz ⟩
+{a: ZMod N}:
+MyNilpotent a ↔ ∀ b : ZMod N, IsUnit (1 + a*b) := by
+  rw[nil_iff_same_primes_or_zero]
+  rw[← plus_one_coprime_iff_same_primes_or_zero]
   constructor
   ·
     intro h
     intro b
-    rw[unit_iff_val_coprime mnz]
+    rw[unit_iff_val_coprime]
     have hb:= h b
     rw[coprime_comm]
     set x : ℕ := (1 + a.val * b.val) with hx
     set y : ℕ := (1 + a * b).val with hy
     -- have eq_zmod : ((1 + a.val * b.val) : ZMod m) = ((1 + a * b).val : ZMod m) := by
     --   simp
-    have eq_mod_m : x % m = y % m := by
+    have eq_mod_m : x % N = y % N := by
       rw[hx]
       rw[hy]
       rw[← ZMod.val_natCast]
@@ -325,12 +336,12 @@ IsNilpotent a ↔ ∀ b : ZMod m, IsUnit (1 + a*b) := by
     intro h
     intro b
     have hb:= h b
-    rw[unit_iff_val_coprime mnz] at hb
+    rw[unit_iff_val_coprime] at hb
     set x : ℕ := (1 + a.val * b.val) with hx
     set y : ℕ := (1 + a * b).val with hy
     -- have eq_zmod : ((1 + a.val * b.val) : ZMod m) = ((1 + a * b).val : ZMod m) := by
     --   simp
-    have eq_mod_m : x % m = y % m := by
+    have eq_mod_m : x % N = y % N := by
       rw[hx]
       rw[hy]
       rw[← ZMod.val_natCast]
@@ -340,3 +351,11 @@ IsNilpotent a ↔ ∀ b : ZMod m, IsUnit (1 + a*b) := by
     rw[coprime_comm] at hb
 
     exact (eq_mod_cop_iff eq_mod_m).mpr hb
+
+theorem nil_iff_jac
+{a: ZMod N}:
+IsNilpotent a ↔ a ∈ Ring.jacobson (ZMod N) := by
+  rw[← ab_one_iff_jac]
+  rw[← myNil_eq_Nil]
+
+  exact ex158
