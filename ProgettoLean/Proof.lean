@@ -90,7 +90,6 @@ MyNilpotent a ↔ a = 0 ∨ (primeFactors N) ⊆ (primeFactors a.val) := by
       have a_pos := Nat.pos_of_ne_zero hanz
       have ak_pos : 0 < a.val ^ k := Nat.pow_pos a_pos
       have ak_nz : a.val ^ k ≠ 0 := (Nat.pos_iff_ne_zero).mp ak_pos
-
       rw[gt_iff_lt] at k_pos
       rw[Nat.pos_iff_ne_zero] at k_pos
 
@@ -104,30 +103,21 @@ MyNilpotent a ↔ a = 0 ∨ (primeFactors N) ⊆ (primeFactors a.val) := by
     | inl h =>
       -- a = 0
       use 1
-      split_ands
-      simp
-      rw[h]
-      simp
+      simpa
     | inr h =>
       by_cases az: a=0
       ·
         use 1
-        split_ands
-        tauto
-        rw[az]
-        simp
+        simpa
       ·
         -- a.val has m's prime factors
-        have av_nz : a.val ≠ 0 :=
-          (ZMod.val_ne_zero a).mpr az
-        have av_pos : 0 < a.val :=
-          Nat.pos_iff_ne_zero.mpr av_nz
+        have av_nz := (ZMod.val_ne_zero a).mpr az
+        have av_pos := Nat.pos_iff_ne_zero.mpr av_nz
         have am_nz : a.val ^ N ≠ 0 :=
           Nat.pos_iff_ne_zero.mp (Nat.pow_pos av_pos)
-
         rw[nil_iff_div_pow]
-        let m_fact := N.factorization
         use N
+        let m_fact := N.factorization
         have nnz := NeZero.ne N
         split_ands
         exact Nat.pos_iff_ne_zero.mpr nnz
@@ -138,31 +128,25 @@ MyNilpotent a ↔ a = 0 ∨ (primeFactors N) ⊆ (primeFactors a.val) := by
         ·
           -- p is a factor of m
           -- we prove that m.factorization p ≤ m
-          have f_lt_m := Nat.factorization_lt p nnz
+          have f_lt_n := Nat.factorization_lt p nnz
           -- and that a.factorization p ≥ 1
           have p_in_af : p ∈ a.val.primeFactors := h pdiv
           have p_f_nz : 0 < a.val.factorization p := by
             have p_div := ((Nat.mem_primeFactors_of_ne_zero av_nz).mp p_in_af).2
             exact Nat.Prime.factorization_pos_of_dvd p_prime av_nz p_div
-
-          have p_pow_ge_m : (a.val ^ N).factorization p ≥ N := by
-            rw[Nat.factorization_pow (n:=a.val)]
-            simp
-            exact Nat.le_mul_of_pos_right N p_f_nz
-
-          have f_le_m := Nat.le_of_lt f_lt_m
-          exact le_trans f_le_m p_pow_ge_m
-
+          rw[Nat.factorization_pow]
+          simp
+          have pf_n_ge_n := Nat.le_mul_of_pos_right N p_f_nz
+          have f_le_n := Nat.le_of_lt f_lt_n
+          exact le_trans f_le_n pf_n_ge_n
         ·
           -- p isn't a factor of m
           -- m.factorization p = 0 ≤ anything
-          have pnd : ¬ p ∣ N := by
+          have f_z : N.factorization p = 0 := by
+            rw[Nat.factorization_eq_zero_iff]
             rw[mem_primeFactors_of_ne_zero nnz] at pdiv
             tauto
-          have fact_zero : N.factorization p = 0 := by
-            by_contra! mp
-            exact pnd (Nat.dvd_of_factorization_pos mp)
-          rw[fact_zero]
+          rw[f_z]
           simp
 
 lemma plus_one_coprime_iff_same_primes_or_zero
