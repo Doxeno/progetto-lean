@@ -22,15 +22,12 @@ constructor
   intro h_au
   by_contra no_max
   rw[not_forall] at no_max
-  obtain ⟨ M, temp_aM ⟩ := no_max
-  simp at temp_aM
-  obtain  ⟨ M_max, aM ⟩ := temp_aM
+  simp at no_max
+  obtain ⟨ M, M_max, aM ⟩ := no_max
   obtain ⟨ ia, h_ia ⟩ := h_au.exists_left_inv
-
   have abs : 1 ∈ M := by
     rw[← h_ia]
     exact mul_mem_left M ia aM
-
   -- 1 not in max
   have not := (isMaximal_iff.mp M_max).1
   tauto
