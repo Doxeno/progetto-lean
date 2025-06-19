@@ -42,14 +42,7 @@ lemma my_val_pow
 {k: ℕ}
 {x: ZMod N} :
 x ^ k = ↑(x.val ^ k) := by
-  induction k with
-  | zero =>
-    rw[pow_zero, pow_zero]
-    simp
-  | succ d hd =>
-    rw[pow_succ, pow_succ]
-    rw[hd]
-    simp
+  simp
 
 -- a is nilpotent → m | a^k for some k
 lemma nil_iff_div_pow
@@ -164,18 +157,11 @@ MyNilpotent a ↔ a = 0 ∨ (primeFactors N) ⊆ (primeFactors a.val) := by
           -- p isn't a factor of m
           -- m.factorization p = 0 ≤ anything
           have pnd : ¬ p ∣ N := by
-            by_contra!
             rw[mem_primeFactors_of_ne_zero nnz] at pdiv
-            have aaa : Nat.Prime p ∧ p ∣ N := by
-              split_ands
-              exact p_prime
-              exact this
-            exact pdiv aaa
-
+            tauto
           have fact_zero : N.factorization p = 0 := by
             by_contra! mp
             exact pnd (Nat.dvd_of_factorization_pos mp)
-
           rw[fact_zero]
           simp
 
@@ -215,7 +201,6 @@ lemma plus_one_coprime_iff_same_primes_or_zero
         have prod_one := ZMod.mul_inv_eq_gcd amp
         have cast_stuff : amp.val = a.val % p := by
           rw[ZMod.val_natCast]
-
         rw[cast_stuff, ap_gcd] at prod_one
         use amp⁻¹.val
         rw[mul_mod, ← cast_stuff]
